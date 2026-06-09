@@ -254,7 +254,7 @@ class LittleHardHat:
         })
     
     # ==================================================================================
-    # Sweep control method.
+    # Sweep control method. T ∧ T
     # ==================================================================================
     def set_sweep(self, channel: int, mode: str, NumberOfStep: int | None = None, TimeForStep: int | None = None):
         """
@@ -275,7 +275,7 @@ class LittleHardHat:
 
         # --- channel ---
         self._check_type(channel, "channel", int)
-        self._check_range(channel, "channel", self.VALID_CHANNEL_RANGE)
+        self._check_range(channel, "channel", self.VALID_CHANNEL_RANGE) 
     
         # --- mode ---
         self._check_type(mode, "mode", str)
@@ -283,27 +283,20 @@ class LittleHardHat:
         if mode not in self.SWEEP_MODE:
             raise LittleHardHatError(f"Invalid value for 'mode': must be in {self.SWEEP_MODE}, got {mode!r}.")
         
-        if mode == "off":
-            if NumberOfStep is not None and TimeForStep is not None:
-                raise LittleHardHatError("When mode is 'off', neither NumberOfStep nor TimeForStep are required.")
-            elif NumberOfStep is not None:
-                raise LittleHardHatError("When mode is 'off', NumberOfStep is not required.")
-            elif TimeForStep is not None:
-                raise LittleHardHatError("When mode is 'off', TimeForStep is not required.")
-            
-        else:
-            if NumberOfStep is None and TimeForStep is None:
-                raise LittleHardHatError("When mode is 'on' or 'loop', both NumberOfStep and TimeForStep must be provided.")
-            elif NumberOfStep is None:
-                raise LittleHardHatError("When mode is 'on' or 'loop', NumberOfStep must be provided.")
-            elif TimeForStep is None:
-                raise LittleHardHatError("When mode is 'on' or 'loop', TimeForStep must be provided.")
-        
-            self._check_type(NumberOfStep, "NumberOfStep", int)
-            self._check_type(TimeForStep, "TimeForStep", int)
+        match mode:
+            case "off":
+                if NumberOfStep is not None or TimeForStep is not None:
+                    raise LittleHardHatError("When mode is 'off', NumberOfStep and TimeForStep must not be provided.")
+                        
+            case "on" | "loop":
+                if NumberOfStep is None or TimeForStep is None:
+                    raise LittleHardHatError("When mode is 'on' or 'loop', both NumberOfStep and TimeForStep must be provided.")
+                            
+                self._check_type(NumberOfStep, "NumberOfStep", int)
+                self._check_type(TimeForStep, "TimeForStep", int)
 
-            self._check_range(NumberOfStep, "NumberOfStep", self.VALID_NUMBER_OF_STEP_RANGE)
-            self._check_range(TimeForStep, "TimeForStep", self.VALID_TIME_FOR_STEP_RANGE)
+                self._check_range(NumberOfStep, "NumberOfStep", self.VALID_NUMBER_OF_STEP_RANGE)
+                self._check_range(TimeForStep, "TimeForStep", self.VALID_TIME_FOR_STEP_RANGE)
 
         params = {
             "canale": channel,
