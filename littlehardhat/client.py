@@ -1,6 +1,7 @@
 import json
 import requests
 
+from types import UnionType
 from .exceptions import LittleHardHatError
 
 class LittleHardHat:
@@ -64,8 +65,11 @@ class LittleHardHat:
     # Validator private methods.
     # ==================================================================================
     def _check_type(self, value, name: str, expected_type):
-        if type(value) is not expected_type:
-            raise TypeError(f"Invalid type for '{name!r}': expected {expected_type.__name__}, got {type(value).__name__}.")
+        if isinstance(expected_type, UnionType):
+            expected_type = expected_type.__args__
+
+        if not isinstance(value, expected_type):
+            raise TypeError(f"Invalid type for '{name}': expected {expected_type}, got {type(value)}")
 
     def _check_range(self, value, name: str, valid_range: list):
         min, max = valid_range
@@ -76,23 +80,9 @@ class LittleHardHat:
     # Low-level HTTP helpers private methods.
     # ==================================================================================
     def _get(self, params: dict):
-        """
-        Send a GET request to the board /get endpoint.
-
-        Args:
-            params (dict): Query parameters for the request.
-
-        Returns:
-            requests.Response: HTTP response object.
-
-        Raises:
-            TypeError: If params is not a dict.
-            ValueError: If params is empty.
-            requests.HTTPError: If the request fails.
-        """
 
         self._check_type(params, "params", dict)
-        
+
         response = self.session.get(
             f"{self.url}{self._ENDPOINT_GET}",   # Example: "http://192.168.1.1/get"
             params=params,
@@ -100,25 +90,20 @@ class LittleHardHat:
         )
         response.raise_for_status()
 
-        return response.text
+        body = response.json()
+
+        if body.get("status") != "ok":
+            raise LittleHardHatError(f"Unexpected response from board: {body}")
+
+        return body
     
     def _save_json(self, path_dac: str = "status_dac.json", path_temp: str = "status_temp.json"):
-        """
-        Save DAC and temperature status to JSON files.
-
-        Args:
-            path_dac (str): Output file for DAC status.
-            path_temp (str): Output file for temperature status.
-
-        Raises:
-            TypeError: If path_dac or path_temp is not a str.
-        """
 
         self._check_type(path_dac, "path_dac", str)
         self._check_type(path_temp, "path_temp", str)
                 
-        status_dac  = self._fetch_status_dac()
-        status_temp = self._fetch_status_temp()
+        status_dac  = self.fetch_status_dac()
+        status_temp = self.fetch_status_temp()
 
         with open(path_dac, "w") as f:
             json.dump(status_dac, f, indent=2)
@@ -126,6 +111,35 @@ class LittleHardHat:
         with open(path_temp, "w") as f:
             json.dump(status_temp, f, indent=2)
 
+    # ==================================================================================
+    # DAC single channel control method.
+    # ==================================================================================
+    def set_dac(self, channel: int, dac_value: int):
+        """
+        Set the value DAC for a specific channel.
+
+        Args:
+            channel (int): Channels index. Range [1:19]
+            dac_value (int): 12-bit DAC value. Range [0:4095]. 0 means channel off.
+
+        Returns:
+            requests.Response: HTTP response from board/ESP.
+
+        Raises:
+            TypeError: If channel or dac_value is not a int.
+            ValueError: If channel is not in [1:19] or dac_value is not in [0:4095].
+        """
+        
+        self._check_type(channel, "channel", int)
+        self._check_type(dac_value, "dac_value", int)
+
+        self._check_range(channel, "channel", self.VALID_CHANNEL_RANGE)
+        self._check_range(dac_value, "dac_value", self.VALID_DAC_RANGE)
+        
+        return self._get({
+            "canale": channel,
+            "valore": dac_value
+        })
 
     # ==================================================================================
     # Trigger control methods.
@@ -176,36 +190,7 @@ class LittleHardHat:
             "settrigerFreq": frequency
         })
 
-    # ==================================================================================
-    # DAC single channel control method.
-    # ==================================================================================
-    def set_dac(self, channel: int, dac_value: int):
-        """
-        Set the value DAC for a specific channel.
 
-        Args:
-            channel (int): Channels index. Range [1:19]
-            dac_value (int): 12-bit DAC value. Range [0:4095]. 0 means channel off.
-
-        Returns:
-            requests.Response: HTTP response from board/ESP.
-
-        Raises:
-            TypeError: If channel or dac_value is not a int.
-            ValueError: If channel is not in [1:19] or dac_value is not in [0:4095].
-        """
-        
-        self._check_type(channel, "channel", int)
-        self._check_type(dac_value, "dac_value", int)
-
-        self._check_range(channel, "channel", self.VALID_CHANNEL_RANGE)
-        self._check_range(dac_value, "dac_value", self.VALID_DAC_RANGE)
-        
-        return self._get({
-            "canale": channel,
-            "valore": dac_value
-        })
-    
     # ==================================================================================
     # Sweep control config methods.
     # ==================================================================================
@@ -327,7 +312,7 @@ class LittleHardHat:
             ValueError: If temperature is not in [25.0:80.0].
         """
 
-        self._check_type(temperature, "temperature", float)
+        self._check_type(temperature, "temperature", float | int)
         self._check_range(temperature, "temperature", self.VALID_TEMPERATURE_RANGE)
         
         return self._get({
@@ -362,7 +347,7 @@ class LittleHardHat:
     # ==================================================================================
     # Status methods.
     # ==================================================================================
-    def get_status_dac(self) -> dict:
+    def fetch_status_dac(self) -> dict:
         """
         Retrieve the current DAC status from the board.
 
@@ -381,7 +366,7 @@ class LittleHardHat:
 
         return response.json()
     
-    def get_status_temp(self) -> dict:
+    def fetch_status_temp(self) -> dict:
         """
         Retrieve the current temperature status from the board.
 
