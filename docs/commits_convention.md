@@ -34,7 +34,7 @@ Gli scope identificano le parti di codice interessate dalla modifica.
 
 | Scope      | Area del progetto                | Path
 |------------|----------------------------------|-------------------------
-| `sdk`      | Libreria pubblica LittleHardHat  | `src/littlehardhat/`
+| `sdk`      | Libreria pubblica LittleHardHat  | `littlehardhat/`
 | `analysis` | Analisi dati e grafici           | `apps/analysis/`
 | `cli`      | Comandi a riga di comando        | `apps/cli/`
 | `daq`      | Acquisizione dati dalla scheda   | `apps/daq/`
