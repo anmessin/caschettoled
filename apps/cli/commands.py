@@ -237,7 +237,7 @@ class LittleHardHatCLI(cmd2.Cmd):
         """
 
         off, on, sweep_on, sweep_loop = ".", "-", ">", "@"
-        status_json = self.board.get_status_dac()
+        status_json = self.board.fetch_status_dac()
 
         def general_info():
             info = {key: value for key, value in status_json.items() if not key.startswith('JS_Channel')}
@@ -293,4 +293,44 @@ class LittleHardHatCLI(cmd2.Cmd):
             self.poutput(ch, " ", dac)
         self.poutput()
         general_info()
+        self.poutput()
+
+    # =====================================================
+    # TEMPERATURE STATUS: Print board temperature status.
+    # =====================================================
+    @cmd2.with_category("Monitoring commands")
+    def do_status_temp(self, _):
+        """
+        Show tempearature, heater and PID status of the board.                                                                                         
+        """
+
+        status_temp_json = self.board.fetch_status_temp()
+
+        temp_channels_scheme = [
+            f"-- Channels ------------------",
+            f"Ch0  {status_temp_json['JS_T_Ch0']:5.2f} °C    Ch4  {status_temp_json['JS_T_Ch4']:5.2f} °C",
+            f"Ch1  {status_temp_json['JS_T_Ch1']:5.2f} °C    Ch5  {status_temp_json['JS_T_Ch5']:5.2f} °C",
+            f"Ch2  {status_temp_json['JS_T_Ch2']:5.2f} °C    Ch6  {status_temp_json['JS_T_Ch6']:5.2f} °C",
+            f"Ch3  {status_temp_json['JS_T_Ch3']:5.2f} °C    Ch7  {status_temp_json['JS_T_Ch7']:5.2f} °C"
+        ]
+
+        temp_board_scheme = [
+            f"-- Board -----",
+            f"T1    {status_temp_json['JS_T1_Board']:5.2f} °C",
+            f"T2    {status_temp_json['JS_T2_Board']:5.2f} °C",
+            f"Mean  {status_temp_json['JS_T_Average']:5.2f} °C",
+            f"Set   {status_temp_json['JS_TSetted']:5.2f} °C"
+        ]
+
+        temp_pid_scheme = [
+            f"-- PID -------",
+            f"P     {status_temp_json['JS_P_Part']:8.2f}",
+            f"I     {status_temp_json['JS_I_Part']:8.2f}",
+            f"D     {status_temp_json['JS_D_Part']:8.2f}",
+            f"Error {status_temp_json['JS_PID_Error']:8.2f}",
+        ]
+
+        self.poutput()
+        for line_ch, line_board, line_pid in zip(temp_channels_scheme, temp_board_scheme, temp_pid_scheme):
+            self.poutput(line_ch, "   ", line_board,  "   ", line_pid)
         self.poutput()
