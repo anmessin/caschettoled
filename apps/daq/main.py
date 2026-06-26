@@ -51,7 +51,7 @@ def parse_json_block(data: dict) -> dict:
 # ================= MAIN =================
 def main():
     lhh = LittleHardHat(HOSTNAME, TIMEOUT)
-    lhh.set_temperature(40.0)
+    # lhh.set_temperature(40.0)
 
     print(f"Log file: {LOG_FILE}")
 
