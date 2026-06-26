@@ -18,12 +18,12 @@ pip install -e .
 ```
 For testing of sdk
 ```
-cd C:\Users\SER\Lavori\Hyper-Kamiokande\mPMT-LittleHardHat
+cd .\mPMT-LittleHardHat
 python -m unittest .\tests\sdk\lhh_test.py
 ```
 For CLI
 ```
-cd C:\Users\SER\Lavori\Hyper-Kamiokande\mPMT-LittleHardHat
+cd .\mPMT-LittleHardHat
 python -m apps.cli.main
 ```
 
@@ -31,8 +31,8 @@ python -m apps.cli.main
 ### Endpoint description
 | Endpoint | Description |
 |---|---|
-| `GET /get?settrigerSource=<value>`                                     | Set the source trigger: onboard trigger generator or external trigger signal. Default: internal. |
-| `GET /get?settrigerFreq=<value>`                                       | Set the internal trigger frequency in Hz. Default: 1000                                          |
+| `GET /get?setTriggerSource=<value>`                                    | Set the source trigger: onboard trigger generator or external trigger signal. Default: internal. |
+| `GET /get?setTriggerFreq=<value>`                                      | Set the internal trigger frequency in Hz. Default: 1000                                          |
 | `GET /get?canale=<ch>&valore=<value>`                                  | Set the DAC output for a single channel. Default: 0 for all channels                             |
 | `GET /get?SweepAdjmin=<value>`                                         | Set the sweep lower bound. Deafult: 1000                                                         |
 | `GET /get?SweepAdjMAX=<value>`                                         | Set the sweep upper bound. Deafult: 3000                                                         |
@@ -43,8 +43,8 @@ python -m apps.cli.main
 | `POST /readTemperature`                                                | Da completare |
 
 **Parameters:**
-- `settrigerSource` : Trigger source `'internal'` (onboard generator) or `'external'` (external signal).
-- `settrigerFreq`   : Internal trigger frequency in Hz `[1,000:10,000]`.
+- `setTriggerSource` : Trigger source `'internal'` (onboard generator) or `'external'` (external signal).
+- `setTriggerFreq`   : Internal trigger frequency in Hz `[1,000:10,000]`.
 - `canale`          : channel index `[1:19]`.
 - `valore`          : DAC value `[0:4095]`.
 - `NumberOfStep`    : number of DAC steps `[1:1000]`.
