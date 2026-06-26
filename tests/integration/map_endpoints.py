@@ -131,6 +131,7 @@ def main():
 
         try:
             response = method(*args)
+            print(response)
 
             time.sleep(0.2)
 
