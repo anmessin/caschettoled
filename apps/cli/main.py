@@ -1,6 +1,5 @@
 import os
 import cmd2
-
 from dotenv import load_dotenv
 from littlehardhat import LittleHardHat
 from commands import LittleHardHatCLI
@@ -29,8 +28,7 @@ def main():
     args = parser.parse_args()
 
     load_dotenv()
-    host = os.getenv("LHHBOARD1_IP")
-
+    host = os.getenv("LHHBOARD2_IP")
     board = LittleHardHat(host, args.timeout)
 
     banner(host, args.timeout)

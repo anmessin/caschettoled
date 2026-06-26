@@ -1,12 +1,12 @@
 import cmd2
+import time
 
 from colorama import Fore, Style
-from littlehardhat import LittleHardHat, LittleHardHatError
+from littlehardhat import LittleHardHat
 
 class LittleHardHatCLI(cmd2.Cmd):
-
     # =====================================================
-    # Construction.
+    # Constructor.
     # =====================================================
     def __init__(self, board: LittleHardHat):
         super().__init__()
@@ -22,7 +22,7 @@ class LittleHardHatCLI(cmd2.Cmd):
         self.ch_min, self.ch_max = self.board.VALID_CHANNEL_RANGE
         self.all_channels = range(self.ch_min, self.ch_max + 1)
 
-    def prsuccess(self, msg) -> None:
+    def prsuccess(self, msg):
         self.poutput(msg)
 
     # =====================================================
@@ -48,7 +48,7 @@ class LittleHardHatCLI(cmd2.Cmd):
             try:
                 self.board.set_dac(ch,args.value)
                 self.prsuccess(f"Channel {ch} turned on to {args.value}.")
-            except LittleHardHatError as e:
+            except Exception  as e:
                 self.perror(f"[ch {ch}] {e}")
         
     # =====================================================
@@ -73,7 +73,7 @@ class LittleHardHatCLI(cmd2.Cmd):
             try:
                 self.board.set_dac(ch,0)
                 self.prsuccess(f"Channel {ch} turned off.")
-            except LittleHardHatError as e:
+            except Exception  as e:
                 self.perror(f"[ch {ch}] {e}")
 
     # =====================================================
@@ -104,7 +104,7 @@ class LittleHardHatCLI(cmd2.Cmd):
                 self.board.set_frequency(args.frequency)
             self.prsuccess(f"Trigger source set to external." if args.external else f"Trigger set to {args.frequency} Hz")
         
-        except LittleHardHatError as e:
+        except Exception  as e:
             self.perror(f"Error: {e}")
 
     # =====================================================
@@ -128,7 +128,7 @@ class LittleHardHatCLI(cmd2.Cmd):
             self.board.set_sweep_max(args.max)
             self.prsuccess(f"Range Sweep set to [{args.min},{args.max}]")
 
-        except LittleHardHatError as e:
+        except Exception  as e:
             self.perror(f"Error: {e}")
 
     # =====================================================
@@ -155,7 +155,7 @@ class LittleHardHatCLI(cmd2.Cmd):
             self.board.set_sweep(args.channel,args.mode,**kwargs)
             self.prsuccess(f"Channel {args.channel} sweep set to '{args.mode}'" + (f" [nstep={args.nstep}, time={args.time}ms]" if args.nstep else "") + ".")
 
-        except LittleHardHatError as e:
+        except Exception  as e:
             self.perror(f"Error: {e}")
 
     # =====================================================
@@ -173,7 +173,7 @@ class LittleHardHatCLI(cmd2.Cmd):
             self.board.set_temperature(args.temperature)
             self.prsuccess(f"Temperature set to {args.temperature} °C.")
 
-        except LittleHardHatError as e:
+        except Exception  as e:
             self.perror(f"Error: {e}")
 
     # =====================================================
@@ -191,59 +191,20 @@ class LittleHardHatCLI(cmd2.Cmd):
             self.board.set_heater_power(args.power)
             self.prsuccess(f"Heater power set to {args.power}.")
 
-        except LittleHardHatError as e:
+        except Exception  as e:
             self.perror(f"Error: {e}")
 
     # =====================================================
-    # RESET: Reset board to default parameters.
+    # RENDER METHODS.
     # =====================================================
-    reset_parser = cmd2.Cmd2ArgumentParser()
-    
-    @cmd2.with_category("Slow control commands")
-    @cmd2.with_argparser(reset_parser)
-    def do_reset(self, args):
-        """Reset board to default parameters."""
-        
-        for ch in self.all_channels:
-            self.board.set_dac(ch,0)
-            
-        self.board.set_frequency(1000)
-
-        self.prsuccess("Board reset to default parameters.")
-
-    # =====================================================
-    # STATUS: Print channel status.
-    # =====================================================
-    @cmd2.with_category("Monitoring commands")
-    def do_status(self, _):
-        """
-        Show 19 channel status with DAC info.
-
-        Example output:
-            "Legend: '.': off, '-': on, '>': sweep on, '@': sweep loop"                                                                            
-                                                                                                                        
-                 12.  01.  02.              0000  0000  0000                                                                
-               11.  18.  13.  03.        0000  0000  0000  0000                                                              
-            10.  17.  19.  14.  04.   0000  0000  0000  0000  0000                                                        
-               09.  16.  15.  05.        0000  0000  0000  0000                                                              
-                 08.  07.  06.             0000  0000  0000      
-
-            JS_Trigger_Frequency: 1000                                                                                    
-            JS_Sweep: off                                                                                                 
-            JS_SweepAdjmin: 1000                                                                                          
-            JS_SweepAdjMAX: 3000                                                                                          
-            JS_NumberOfStep: 0                                                                                            
-            JS_TimeForStep: 100                                                                                            
-        """
-
+    def _render_status_dac(self):
         off, on, sweep_on, sweep_loop = ".", "-", ">", "@"
         status_json = self.board.fetch_status_dac()
 
         def general_info():
-            info = {key: value for key, value in status_json.items() if not key.startswith('JS_Channel')}
-            for key, value in info.items():
-                print(f"-{key[3:]}: {value}")
-
+            info = {k: v for k, v in status_json.items() if not k.startswith('JS_Channel')}
+            return [f"-{k[3:]}: {v}" for k, v in info.items()]
+            
         def status(channel: int):
             dac_value = status_json[f"JS_Channel_{channel}"]
             ch_sweep = status_json["JS_SelectedCh"]
@@ -286,23 +247,20 @@ class LittleHardHatCLI(cmd2.Cmd):
             f"          {stat[8][1]}  {stat[7][1]}  {stat[6][1]}",
         ]
 
-        self.poutput()
-        self.poutput(f"Legend: {off_legend}, {on_legend}, {sweep_on_legend}, {sweep_loop_legend}")
-        self.poutput()
+        lines = []
+        lines.append("=== DAC STATUS ===")
+        lines.append(f"Legend: {off_legend}, {on_legend}, {sweep_on_legend}, {sweep_loop_legend}")
+        lines.append("")
         for ch, dac in zip(status_scheme, dac_scheme):
-            self.poutput(ch, " ", dac)
-        self.poutput()
-        general_info()
-        self.poutput()
+            lines.append(f"{ch}   {dac}")
 
-    # =====================================================
-    # TEMPERATURE STATUS: Print board temperature status.
-    # =====================================================
-    @cmd2.with_category("Monitoring commands")
-    def do_status_temp(self, _):
-        """
-        Show tempearature, heater and PID status of the board.                                                                                         
-        """
+        lines.append("")
+        lines.extend(general_info())
+        lines.append("")
+
+        return lines
+    
+    def _render_status_temperature(self):
 
         status_temp_json = self.board.fetch_status_temp()
 
@@ -330,7 +288,78 @@ class LittleHardHatCLI(cmd2.Cmd):
             f"Error {status_temp_json['JS_PID_Error']:8.2f}",
         ]
 
-        self.poutput()
-        for line_ch, line_board, line_pid in zip(temp_channels_scheme, temp_board_scheme, temp_pid_scheme):
-            self.poutput(line_ch, "   ", line_board,  "   ", line_pid)
-        self.poutput()
+        lines = []
+        lines.append("=== TEMPERATURE STATUS ===")
+        lines.append("")
+        for temp_ch, temp_board, params_pid in zip(temp_channels_scheme, temp_board_scheme, temp_pid_scheme):
+            lines.append(f"{temp_ch}   {temp_board}   {params_pid}")
+
+        lines.append("")
+
+        return lines
+
+    # =====================================================
+    # CHANNEL STATUS: Print channel status.
+    # =====================================================
+    @cmd2.with_category("Monitoring commands")
+    def do_status_dac(self, _):
+        """Show 19 channel status with DAC info."""
+
+        for line in self._render_status_dac():
+            self.poutput(line)
+
+    # =====================================================
+    # TEMPERATURE STATUS: Print board temperature status.
+    # =====================================================
+    @cmd2.with_category("Monitoring commands")
+    def do_status_temp(self, _):
+        """Show tempearature, heater and PID status of the board."""
+
+        for line in self._render_status_temperature():
+            self.poutput(line)
+
+    # =====================================================
+    # MONITORING
+    # =====================================================
+    monitor_parser = cmd2.Cmd2ArgumentParser()
+    monitor_parser.add_argument('-d', '--dac', action='store_true', help='Show DAC status')
+    monitor_parser.add_argument('-t', '--temp', action='store_true', help='Show temperature status')
+    monitor_parser.add_argument('-r', '--rate', type=float, default=1.0, help='Refresh rate in seconds')
+
+    @cmd2.with_category("Monitoring commands")
+    @cmd2.with_argparser(monitor_parser)
+    def do_monitor(self, args):
+        """Live monitor for DAC and/or temperature status (Ctrl+C to stop)."""
+
+        show_dac = args.dac
+        show_temp = args.temp
+        rate = args.rate
+
+        if not show_dac and not show_temp:
+            show_dac = True
+
+        try:
+            print("\033[2J", end="")
+            print("\033[?25l", end="")
+
+            while True:
+                print("\033[H", end="")
+
+                self.poutput(f"[MONITOR] refresh = {rate}s   (Ctrl+C to stop)\n")
+
+                if show_dac:
+                    for line in self._render_status_dac():
+                        self.poutput(line)
+
+                if show_temp:
+                    for line in self._render_status_temperature():
+                        self.poutput(line)
+
+                time.sleep(rate)
+
+        except KeyboardInterrupt:
+            pass
+
+        finally:
+            print("\033[?25h", end="")
+            self.poutput("\nMonitor stopped.")
