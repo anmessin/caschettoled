@@ -23,7 +23,6 @@ Il tipo descrive la natura della modifica. È obbligatorio nella struttura del m
 - `refactor` : Usato quando è stata fatta una modificata al codice che non altera la logica del programma (es. passare da programmazione procedurale a object-oriented (OOP)). In questo type rientra anche il caso in cui si va a modificare la struttura delle cartelle ad esempio spostando i moduli core in un sottopacchetto per migliorare la modularità senza alterare la logica
 - `revert`   : Usato quando deve essere annullato un commit precedente.
 - `style`    : Usato quando è stata fatta una modifica al codice esclusivamente di carattere grafico (es. cambiato dei commenti, modificato ordine con cui le funzioni/metodi sono definiti). In questo type non rientrano i casi in cui si vanno a fare delle modifiche al nome di funzioni/variabili per renderle più esplicite; questo caso rientra nel type `refactor`.
-- `test`     : Usato quando è stata fatta una modifica ai file di test dei codici in sviluppo.
 
 Per cambiamenti incompatibili con la versione precedente è possibile usare:
 - `!` dopo il tipo (es. `feat!`)
