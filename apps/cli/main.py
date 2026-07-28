@@ -1,8 +1,15 @@
 import os
 import cmd2
+
 from dotenv import load_dotenv
-from littlehardhat import LittleHardHat
 from commands import LittleHardHatCLI
+from littlehardhat import (
+    LittleHardHat,
+    LittleHardHatError,
+    LittleHardHatConnectionError,
+    LittleHardHatTimeoutError,
+    LittleHardHatResponseError,
+)
 
 def banner(host, timeout):
     BANNER = [
@@ -24,11 +31,11 @@ def banner(host, timeout):
 def main():
 
     parser = cmd2.Cmd2ArgumentParser()
-    parser.add_argument('--timeout', type=int, default=5)
+    parser.add_argument('--timeout', type=int, default=2)
     args = parser.parse_args()
 
     load_dotenv()
-    host = os.getenv("LHHBOARD2_IP")
+    host = os.getenv("LHHBOARD3_IP")
     board = LittleHardHat(host, args.timeout)
 
     banner(host, args.timeout)

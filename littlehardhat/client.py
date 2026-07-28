@@ -2,6 +2,12 @@ import json
 import requests
 
 from types import UnionType
+from .exceptions import (
+    LittleHardHatError,
+    LittleHardHatConnectionError,
+    LittleHardHatTimeoutError,
+    LittleHardHatResponseError,
+)
 
 class LittleHardHat:
     """Control interface for the Little Hard Hat board (ESP32-based)."""
@@ -12,7 +18,7 @@ class LittleHardHat:
     _ENDPOINT_READ_TEMPERATURE = "/readTemperature"
  
     # -- Trigger -----------------------------------------------------------------------
-    TRIGGER_SOURCE_TYPE  = ("internal", "external")
+    TRIGGER_SOURCE_TYPE   = ("internal", "external")
     VALID_FREQUENCY_RANGE = (1000, 10000)                # Hz — onboard generator limits
  
     # -- Channels ----------------------------------------------------------------------
@@ -64,19 +70,42 @@ class LittleHardHat:
     # ==================================================================================
     # Low-level HTTP helpers private methods.
     # ==================================================================================
+    def _request(self, method: str, url: str, **kwargs):
+        try:
+            response = requests.request(method, url, timeout=self.timeout, **kwargs)
+            response.raise_for_status()
+            return response
+ 
+        except requests.exceptions.Timeout as e:
+            raise LittleHardHatTimeoutError(
+                f"Board at '{self.url}' did not respond within {self.timeout}s."
+            ) from e
+ 
+        except requests.exceptions.ConnectionError as e:
+            raise LittleHardHatConnectionError(
+                f"Could not reach board at '{self.url}': {e}"
+            ) from e
+ 
+        except requests.exceptions.HTTPError as e:
+            raise LittleHardHatResponseError(
+                f"Board at '{self.url}' returned an error: {e}"
+            ) from e
+ 
+        except requests.exceptions.RequestException as e:
+            raise LittleHardHatError(
+                f"Unexpected error while contacting board at '{self.url}': {e}"
+            ) from e
+
     def _get(self, params: dict):
         self._check_type(params, "params", dict)
-
-        response = requests.get(
+ 
+        response = self._request(
+            "GET",
             f"{self.url}{self._ENDPOINT_GET}",   # Example: "http://192.168.1.1/get"
-            params=params,
-            timeout=self.timeout
+            params=params
         )
-        response.raise_for_status()
-
-        body = response.text
-
-        return body
+ 
+        return response.text
     
     def _save_json(self, path_dac: str = "status_dac.json", path_temp: str = "status_temp.json"):
         self._check_type(path_dac, "path_dac", str)

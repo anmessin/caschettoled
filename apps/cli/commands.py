@@ -2,7 +2,13 @@ import cmd2
 import time
 
 from colorama import Fore, Style
-from littlehardhat import LittleHardHat
+from littlehardhat import (
+    LittleHardHat,
+    LittleHardHatError,
+    LittleHardHatConnectionError,
+    LittleHardHatTimeoutError,
+    LittleHardHatResponseError,
+)
 
 class LittleHardHatCLI(cmd2.Cmd):
     # =====================================================
@@ -48,8 +54,10 @@ class LittleHardHatCLI(cmd2.Cmd):
             try:
                 self.board.set_dac(ch,args.value)
                 self.prsuccess(f"Channel {ch} turned on to {args.value}.")
-            except Exception  as e:
-                self.perror(f"[ch {ch}] {e}")
+            except (TypeError, ValueError) as e:
+                self.perror(f"[ch {ch}] Invalid input: {e}")
+            except LittleHardHatError as e:
+                self.perror(f"[ch {ch}] Board error: {e}")
         
     # =====================================================
     # OFF: Turn off DAC.
@@ -73,8 +81,10 @@ class LittleHardHatCLI(cmd2.Cmd):
             try:
                 self.board.set_dac(ch,0)
                 self.prsuccess(f"Channel {ch} turned off.")
-            except Exception  as e:
-                self.perror(f"[ch {ch}] {e}")
+            except (TypeError, ValueError) as e:
+                self.perror(f"[ch {ch}] Invalid input: {e}")
+            except LittleHardHatError as e:
+                self.perror(f"[ch {ch}] Board error: {e}")
 
     # =====================================================
     # TRIGGER: Set the parameters of the trigger.
@@ -104,8 +114,10 @@ class LittleHardHatCLI(cmd2.Cmd):
                 self.board.set_frequency(args.frequency)
             self.prsuccess(f"Trigger source set to external." if args.external else f"Trigger set to {args.frequency} Hz")
         
-        except Exception  as e:
-            self.perror(f"Error: {e}")
+        except (TypeError, ValueError) as e:
+            self.perror(f"{e}")
+        except LittleHardHatError as e:
+            self.perror(f"[ch {ch}] Board error: {e}")
 
     # =====================================================
     # SWEEP: Set the range of the sweep.
@@ -128,8 +140,10 @@ class LittleHardHatCLI(cmd2.Cmd):
             self.board.set_sweep_max(args.max)
             self.prsuccess(f"Range Sweep set to [{args.min},{args.max}]")
 
-        except Exception  as e:
-            self.perror(f"Error: {e}")
+        except (TypeError, ValueError) as e:
+            self.perror(f"{e}")
+        except LittleHardHatError as e:
+            self.perror(f"[ch {ch}] Board error: {e}")
 
     # =====================================================
     # SWEEP: Turn off/on/loop the sweep for single channel.
@@ -155,8 +169,10 @@ class LittleHardHatCLI(cmd2.Cmd):
             self.board.set_sweep(args.channel,args.mode,**kwargs)
             self.prsuccess(f"Channel {args.channel} sweep set to '{args.mode}'" + (f" [nstep={args.nstep}, time={args.time}ms]" if args.nstep else "") + ".")
 
-        except Exception  as e:
-            self.perror(f"Error: {e}")
+        except (TypeError, ValueError) as e:
+            self.perror(f"{e}")
+        except LittleHardHatError as e:
+            self.perror(f"[ch {ch}] Board error: {e}")
 
     # =====================================================
     # TEMPERATURE: Set temperature of the heater.
@@ -173,8 +189,10 @@ class LittleHardHatCLI(cmd2.Cmd):
             self.board.set_temperature(args.temperature)
             self.prsuccess(f"Temperature set to {args.temperature} °C.")
 
-        except Exception  as e:
-            self.perror(f"Error: {e}")
+        except (TypeError, ValueError) as e:
+            self.perror(f"{e}")
+        except LittleHardHatError as e:
+            self.perror(f"[ch {ch}] Board error: {e}")
 
     # =====================================================
     # HEATER: Set power of the heater.
@@ -191,8 +209,10 @@ class LittleHardHatCLI(cmd2.Cmd):
             self.board.set_heater_power(args.power)
             self.prsuccess(f"Heater power set to {args.power}.")
 
-        except Exception  as e:
-            self.perror(f"Error: {e}")
+        except (TypeError, ValueError) as e:
+            self.perror(f"{e}")
+        except LittleHardHatError as e:
+            self.perror(f"[ch {ch}] Board error: {e}")
 
     # =====================================================
     # RENDER METHODS.
@@ -305,8 +325,11 @@ class LittleHardHatCLI(cmd2.Cmd):
     def do_status_dac(self, _):
         """Show 19 channel status with DAC info."""
 
-        for line in self._render_status_dac():
-            self.poutput(line)
+        try: 
+            for line in self._render_status_dac():
+                self.poutput(line)
+        except LittleHardHatError as e:
+            self.perror(f"{e}")
 
     # =====================================================
     # TEMPERATURE STATUS: Print board temperature status.
@@ -315,8 +338,11 @@ class LittleHardHatCLI(cmd2.Cmd):
     def do_status_temp(self, _):
         """Show tempearature, heater and PID status of the board."""
 
-        for line in self._render_status_temperature():
-            self.poutput(line)
+        try:
+            for line in self._render_status_temperature():
+                self.poutput(line)
+        except LittleHardHatError as e:
+            self.perror(f"{e}")
 
     # =====================================================
     # MONITORING
@@ -347,13 +373,16 @@ class LittleHardHatCLI(cmd2.Cmd):
 
                 self.poutput(f"[MONITOR] refresh = {rate}s   (Ctrl+C to stop)\n")
 
-                if show_dac:
-                    for line in self._render_status_dac():
-                        self.poutput(line)
+                try: 
+                    if show_dac:
+                        for line in self._render_status_dac():
+                            self.poutput(line)
 
-                if show_temp:
-                    for line in self._render_status_temperature():
-                        self.poutput(line)
+                    if show_temp:
+                        for line in self._render_status_temperature():
+                            self.poutput(line)
+                except LittleHardHatError as e:
+                    self.perror(f"{e}")
 
                 time.sleep(rate)
 

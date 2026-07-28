@@ -5,26 +5,24 @@ Scripts for the mPMT automatic dome tester ***CaschettoLED***, playfully nicknam
 To set the ENV variables create a ***.env*** file in the root directory of the project as using this template:
 
 ```
-MAINBOARD_IP=<IP>
 LHHBOARD_IP=<IP>
 ```
 
 ## Package installation
 
+For SDK
 ```
-py -m venv venv_lhh
-.\venv_lhh\Scripts\activate
 pip install -e .
 ```
-For testing of sdk
+For single app
 ```
-cd .\mPMT-LittleHardHat
-python -m unittest .\tests\sdk\lhh_test.py
+pip install -e .[cli]
+pip install -e .[daq]
+pip install -e .[analysis]
 ```
-For CLI
+For all
 ```
-cd .\mPMT-LittleHardHat
-python -m apps.cli.main
+pip install -e .[apps]
 ```
 
 ## ESP32 HTTP API Reference
@@ -47,7 +45,7 @@ python -m apps.cli.main
 - `setTriggerFreq`   : Internal trigger frequency in Hz `[1,000:10,000]`.
 - `canale`          : channel index `[1:19]`.
 - `valore`          : DAC value `[0:4095]`.
-- `NumberOfStep`    : number of DAC steps `[1:1000]`.
+- `NumberOfStep`    : number of DAC steps `[1:254]`.
 - `TimeForStep`     : duration of each step in milliseconds `[10:10,000]`
 - `setTemperature`  : Temperatura misurata in °C `[25.0:80.0]`
 - `setHeaterPower`  : Potenza del heater `[0:4095]`

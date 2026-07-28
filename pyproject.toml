@@ -7,7 +7,31 @@ name = "littlehardhat"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
-    "requests>=2.32",
+    "requests>=2.34",
+]
+
+[project.optional-dependencies]
+# Dipendenze richieste da apps/cli
+cli = [
+    "cmd2>=4.0",
+    "colorama>=0.4.6",
+    "python-dotenv>=1.2",
+]
+
+# Dipendenze richieste da apps/daq
+daq = [
+    "python-dotenv>=1.2",
+]
+
+# Dipendenze richieste da apps/analysis
+analysis = [
+    "pandas>=3.0",
+    "matplotlib>=3.10",
+]
+
+# Scorciatoia: installa tutto (sdk + tutte le app)
+apps = [
+    "littlehardhat[cli,daq,analysis]",
 ]
 
 [tool.setuptools.packages.find]
