@@ -241,19 +241,9 @@ class LittleHardHat:
     # Status methods.
     # ==================================================================================
     def fetch_status_dac(self) -> dict:
-        response = requests.get(
-            f"{self.url}{self._ENDPOINT_GETSTATUS}",
-            timeout=self.timeout
-        )
-        response.raise_for_status()
-
+        response = self._request("GET", f"{self.url}{self._ENDPOINT_GETSTATUS}")
         return response.json()
     
     def fetch_status_temp(self) -> dict:
-        response = requests.post(
-            f"{self.url}{self._ENDPOINT_READ_TEMPERATURE}",
-            timeout=self.timeout
-        )
-        response.raise_for_status()
-
+        response = self._request("POST", f"{self.url}{self._ENDPOINT_READ_TEMPERATURE}")
         return response.json()
