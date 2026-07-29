@@ -14,13 +14,23 @@ class LittleHardHatCLI(cmd2.Cmd):
     # =====================================================
     # Constructor.
     # =====================================================
-    def __init__(self, board: LittleHardHat):
+    def __init__(self, board: LittleHardHat, board_id: int):
         super().__init__()
+
         self.board = board
-        self.prompt = "LHH> "
+        self.board_id = board_id
+        self.prompt = f"LHH[{board_id}]> "
 
         cmd2.categorize(
-            (cmd2.Cmd.do_alias, cmd2.Cmd.do_help, cmd2.Cmd.do_history, cmd2.Cmd.do_quit, cmd2.Cmd.do_set, cmd2.Cmd.do_run_script, cmd2.Cmd.do_shell),
+            (
+                cmd2.Cmd.do_alias,        # Da capire cosa fa
+                cmd2.Cmd.do_help,         # Da capire cosa fa
+                cmd2.Cmd.do_history,      # Da capire cosa fa
+                cmd2.Cmd.do_quit,         # Da capire cosa fa
+                cmd2.Cmd.do_set,          # Da capire cosa fa
+                cmd2.Cmd.do_run_script,   # Da capire cosa fa
+                cmd2.Cmd.do_shell         # Da capire cosa fa
+            ),
             "General commands"
         )
 
@@ -52,13 +62,20 @@ class LittleHardHatCLI(cmd2.Cmd):
 
         for ch in channels:
             try:
-                self.board.set_dac(ch,args.value)
-                self.prsuccess(f"Channel {ch} turned on to {args.value}.")
+                self.board.set_dac(ch, args.value)
+                status_dac = self.board.fetch_status_dac()
+                dac_value = status_dac[f"JS_Channel_{ch}"]
+
+                if args.value == dac_value:
+                    self.prsuccess(f"Channel {ch} turned on to {dac_value}.")
+                else: 
+                    self.poutput(f"Errore [{ch}]: valore impostato non corrisponde con quello letto.")
+
             except (TypeError, ValueError) as e:
                 self.perror(f"[ch {ch}] Invalid input: {e}")
             except LittleHardHatError as e:
                 self.perror(f"[ch {ch}] Board error: {e}")
-        
+
     # =====================================================
     # OFF: Turn off DAC.
     # =====================================================
@@ -80,6 +97,7 @@ class LittleHardHatCLI(cmd2.Cmd):
         for ch in channels:
             try:
                 self.board.set_dac(ch,0)
+                status_dac = self.board.fetch_status_dac()
                 self.prsuccess(f"Channel {ch} turned off.")
             except (TypeError, ValueError) as e:
                 self.perror(f"[ch {ch}] Invalid input: {e}")

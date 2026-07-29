@@ -48,7 +48,7 @@ def main():
     sys.argv = [sys.argv[0]]
 
     banner(host, args.timeout)
-    cli = LittleHardHatCLI(board)
+    cli = LittleHardHatCLI(board, args.board)
     cli.cmdloop()
 
 if __name__ == "__main__":

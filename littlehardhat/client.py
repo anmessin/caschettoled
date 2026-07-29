@@ -218,7 +218,7 @@ class LittleHardHat:
     # ==================================================================================
     # Temperature control method.
     # ==================================================================================
-    def set_temperature(self, temperature: float):
+    def set_temperature(self, temperature: float | int):
         self._check_type(temperature, "temperature", float | int)
         self._check_range(temperature, "temperature", self.VALID_TEMPERATURE_RANGE)
         

@@ -1,51 +1,106 @@
 # mPMT CaschettoLED
 
-Scripts for the mPMT automatic dome tester ***CaschettoLED***, playfully nicknamed *Little Hard Hat* by Antonio Pandalone. The CaschettoLED tester is a board ESP32-based, that drives 19 LED channels, each modulated via PWM.
+Scripts per il testing automatico dei mPMT tramite ***CaschettoLED***, soprannominata scherzosamente *Little Hard Hat*. CaschettoLED è una board basata su ESP32 che pilota 19 canali LED, ciascuno modulato via PWM, e integra il controllo di un heater con regolazione PID.
 
-To set the ENV variables create a ***.env*** file in the root directory of the project as using this template:
+Il progetto è organizzato in due parti principali:
+- **`littlehardhat`**: SDK Python per comunicare con la board via HTTP.
+- **`apps/cli`**: interfaccia a riga di comando interattiva costruita sopra l'SDK.
+
+## Struttura del progetto
 
 ```
-LHHBOARD_IP=<IP>
+littlehardhat/              # SDK pubblico (client HTTP + eccezioni)
+apps/
+  cli/                      # Interfaccia a riga di comando
+docs/                       # Documentazione dettagliata
+  sdk.md                    # Riferimento API dell'SDK
+  cli.md                    # Riferimento comandi CLI
+  commits_convention.md     # Convenzione per i commit
 ```
 
-## Package installation
+## Configurazione
 
-For SDK
+Crea un file `.env` nella root del progetto con l'IP della/e board:
 ```
+LHHBOARD1_IP=<IP board 1>
+LHHBOARD2_IP=<IP board 2>
+```
+
+## Installazione
+Solo SDK:
+```bash
 pip install -e .
 ```
-For single app
-```
+
+SDK + CLI:
+```bash
 pip install -e .[cli]
-pip install -e .[daq]
-pip install -e .[analysis]
 ```
-For all
-```
+
+Tutte le app (inclusi daq e analysis):
+```bash
 pip install -e .[apps]
 ```
 
-## ESP32 HTTP API Reference
-### Endpoint description
-| Endpoint | Description |
-|---|---|
-| `GET /get?setTriggerSource=<value>`                                    | Set the source trigger: onboard trigger generator or external trigger signal. Default: internal. |
-| `GET /get?setTriggerFreq=<value>`                                      | Set the internal trigger frequency in Hz. Default: 1000                                          |
-| `GET /get?canale=<ch>&valore=<value>`                                  | Set the DAC output for a single channel. Default: 0 for all channels                             |
-| `GET /get?SweepAdjmin=<value>`                                         | Set the sweep lower bound. Deafult: 1000                                                         |
-| `GET /get?SweepAdjMAX=<value>`                                         | Set the sweep upper bound. Deafult: 3000                                                         |
-| `GET /get?canale=<ch>&sweep=off`                                       | Stop sweep on the given channel. The DAC value is frozen at the current level.                   |
-| `GET /get?canale=<ch>&sweep=<value>&NumberOfStep=<n>&TimeForStep=<ms>` | Run a single-shot sweep or a continuously sweep from `SweepAdjmin` to `SweepAdjMAX`. If the sweep is a single-shot, at the end hold the final value. |
-| `GET /get?setTemperature=<value>`                                      | Da completare |
-| `GET /get?setHeaterPower=<value>`                                      | Da completare |
-| `POST /readTemperature`                                                | Da completare |
+## Quick start
 
-**Parameters:**
-- `setTriggerSource` : Trigger source `'internal'` (onboard generator) or `'external'` (external signal).
-- `setTriggerFreq`   : Internal trigger frequency in Hz `[1,000:10,000]`.
-- `canale`          : channel index `[1:19]`.
-- `valore`          : DAC value `[0:4095]`.
-- `NumberOfStep`    : number of DAC steps `[1:254]`.
-- `TimeForStep`     : duration of each step in milliseconds `[10:10,000]`
-- `setTemperature`  : Temperatura misurata in °C `[25.0:80.0]`
-- `setHeaterPower`  : Potenza del heater `[0:4095]`
+### Usare l'SDK direttamente
+
+```python
+from littlehardhat import LittleHardHat
+
+board = LittleHardHat("192.168.1.1", timeout=2)
+
+board.set_dac(channel=1, dac_value=2048)
+board.set_temperature(45.0)
+
+status_dac  = board.fetch_status_dac()
+status_temp = board.fetch_status_temp()
+```
+
+Per il riferimento completo dei metodi vedi [`docs/sdk.md`](docs/sdk.md).
+
+### Usare la CLI
+```bash
+python apps/cli/main.py --board 1
+```
+
+```
+LHH> on 1 -v 2048
+LHH> status_dac
+LHH> temperature 45.0
+LHH> monitor -d -t -r 0.5
+```
+
+Per l'elenco completo dei comandi vedi [`docs/cli.md`](docs/cli.md).
+
+## ESP32 HTTP API Reference
+| Endpoint | Descrizione |
+|---------------------------------------------------------------------|-------------------------------------------------------------- |
+| `GET /get?setTriggerSource=<value>`                                 | Imposta la sorgente del trigger: `internal` o `external`.     |
+| `GET /get?setTriggerFreq=<value>`                                   | Imposta la frequenza del trigger interno in Hz.               |
+| `GET /get?canale=<ch>&valore=<value>`                               | Imposta l'output DAC per un singolo canale.                   |
+| `GET /get?SweepAdjmin=<value>`                                      | Imposta il limite inferiore dello sweep.                      |
+| `GET /get?SweepAdjMAX=<value>`                                      | Imposta il limite superiore dello sweep.                      |
+| `GET /get?canale=<ch>&sweep=off`                                    | Ferma lo sweep sul canale indicato.                           |
+| `GET /get?canale=<ch>&sweep=on&NumberOfStep=<n>&TimeForStep=<ms>`   | Esegue uno sweep singolo da `SweepAdjmin` a `SweepAdjMAX`.    |
+| `GET /get?canale=<ch>&sweep=loop&NumberOfStep=<n>&TimeForStep=<ms>` | Esegue uno sweep in loop tra `SweepAdjmin` e `SweepAdjMAX`.   |
+| `GET /get?setTemperature=<value>`                                   | Imposta la temperatura target dell'heater.                    |
+| `GET /get?setHeaterPower=<value>`                                   | Imposta la potenza dell'heater.                               |
+| `GET /getStatus`                                                    | Restituisce lo stato corrente di DAC/sweep/trigger come json. |
+| `POST /readTemperature`                                             | Restituisce lo stato corrente di temperatura/PID come json.   |
+
+**Parametri:**
+- `setTriggerSource`: `'internal'` (default) o `'external'`.
+- `setTriggerFreq`: frequenza del trigger interno in Hz `[1000:10000]`. Default: `1000`.
+- `canale`: indice del canale `[1:19]`.
+- `valore`: valore DAC `[0:4095]`. Default UI: `0`.
+- `SweepAdjmin` / `SweepAdjMAX`: limiti del range di sweep `[0:4095]`. Default: `1000` / `3000`, con distanza minima di 100.
+- `NumberOfStep`: numero di step DAC nello sweep. Default UI: `100`.
+- `TimeForStep`: durata di ogni step in millisecondi `[10:10000]`. Default UI: `100`.
+- `setTemperature`: temperatura target in °C `[25.0:80.0]`.
+- `setHeaterPower`: potenza dell'heater `[0:4095]`.
+
+## Gestione errori
+
+L'SDK espone una gerarchia di eccezioni dedicate (`LittleHardHatConnectionError`, `LittleHardHatTimeoutError`, `LittleHardHatResponseError`), tutte derivate da `LittleHardHatError`. Dettagli in [`docs/sdk.md`](docs/sdk.md#eccezioni).
