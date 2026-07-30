@@ -23,13 +23,13 @@ class LittleHardHatCLI(cmd2.Cmd):
 
         cmd2.categorize(
             (
-                cmd2.Cmd.do_alias,        # Da capire cosa fa
-                cmd2.Cmd.do_help,         # Da capire cosa fa
-                cmd2.Cmd.do_history,      # Da capire cosa fa
-                cmd2.Cmd.do_quit,         # Da capire cosa fa
-                cmd2.Cmd.do_set,          # Da capire cosa fa
-                cmd2.Cmd.do_run_script,   # Da capire cosa fa
-                cmd2.Cmd.do_shell         # Da capire cosa fa
+                cmd2.Cmd.do_alias,     
+                cmd2.Cmd.do_help,      
+                cmd2.Cmd.do_history,   
+                cmd2.Cmd.do_quit,      
+                cmd2.Cmd.do_set,       
+                cmd2.Cmd.do_run_script,
+                cmd2.Cmd.do_shell      
             ),
             "General commands"
         )
@@ -39,15 +39,15 @@ class LittleHardHatCLI(cmd2.Cmd):
         self.all_channels = range(self.ch_min, self.ch_max + 1)
 
     def prsuccess(self, msg):
-        self.poutput(msg)
+        self.poutput(Fore.GREEN + msg + Style.RESET_ALL)
 
     # =====================================================
     # ON: Turn on DAC.
     # =====================================================
     on_parser = cmd2.Cmd2ArgumentParser()
     on_parser.add_argument('channel', type=int, nargs='*', help="Single channel to turn on (1-19).")
-    on_parser.add_argument('-v', '--value', type=int, default=2048, help="DAC value (1-4095).")
-    on_parser.add_argument('-a', '--all', action="store_true", help='turn on all channels')
+    on_parser.add_argument('--value', type=int, default=2048, help="DAC value (1-4095).")
+    on_parser.add_argument('--all', action="store_true", help='turn on all channels')
 
     @cmd2.with_category("Slow control commands")
     @cmd2.with_argparser(on_parser)
@@ -55,7 +55,11 @@ class LittleHardHatCLI(cmd2.Cmd):
         """Turn on one or more channels DAC by setting the value."""
 
         if (not args.all) and (not args.channel):
-            self.perror("Error: specify at least one channel or use -a.")
+            self.perror("Error: specify at least one channel or use --all.")
+            return
+
+        if args.value == 0:
+            self.perror(f"Error: --value cannot be 0; use 'off' to turn off a channel.")
             return
 
         channels = (self.all_channels if args.all else args.channel)
@@ -67,9 +71,9 @@ class LittleHardHatCLI(cmd2.Cmd):
                 dac_value = status_dac[f"JS_Channel_{ch}"]
 
                 if args.value == dac_value:
-                    self.prsuccess(f"Channel {ch} turned on to {dac_value}.")
+                    self.prsuccess(f"Channel {ch} turned on to {args.value}.")
                 else: 
-                    self.poutput(f"Errore [{ch}]: valore impostato non corrisponde con quello letto.")
+                    self.perror(f"[ch {ch}] Board error: Channel {ch} turned on to {dac_value} instead of {args.value}.")
 
             except (TypeError, ValueError) as e:
                 self.perror(f"[ch {ch}] Invalid input: {e}")
@@ -81,7 +85,7 @@ class LittleHardHatCLI(cmd2.Cmd):
     # =====================================================
     off_parser = cmd2.Cmd2ArgumentParser()
     off_parser.add_argument('channel', type=int, nargs='*', help="Single channel to turn off (1-19).")
-    off_parser.add_argument('-a', "--all", action="store_true", help='turn off all channels')
+    off_parser.add_argument("--all", action="store_true", help='turn off all channels')
 
     @cmd2.with_category("Slow control commands")
     @cmd2.with_argparser(off_parser)
@@ -89,7 +93,7 @@ class LittleHardHatCLI(cmd2.Cmd):
         """Turn off one or more channels DAC."""
 
         if (not args.all) and (not args.channel):
-            self.perror("Error: specify at least one channel or use -a.")
+            self.perror("Error: specify at least one channel or use --all.")
             return
         
         channels = (self.all_channels if args.all else args.channel)
@@ -98,7 +102,13 @@ class LittleHardHatCLI(cmd2.Cmd):
             try:
                 self.board.set_dac(ch,0)
                 status_dac = self.board.fetch_status_dac()
-                self.prsuccess(f"Channel {ch} turned off.")
+                dac_value = status_dac[f"JS_Channel_{ch}"]
+
+                if 0 == dac_value:
+                    self.prsuccess(f"Channel {ch} turned off.")
+                else: 
+                    self.perror(f"[ch {ch}] Board error: Channel {ch} not turned off. Set to {dac_value}.")
+
             except (TypeError, ValueError) as e:
                 self.perror(f"[ch {ch}] Invalid input: {e}")
             except LittleHardHatError as e:
@@ -109,7 +119,7 @@ class LittleHardHatCLI(cmd2.Cmd):
     # =====================================================
     trigger_parser = cmd2.Cmd2ArgumentParser()
     trigger_parser.add_argument('frequency', type=int, nargs='?', help="Frequency of the internal trigger in Hz (1,000-10,000)")
-    trigger_parser.add_argument('-e', '--external', action='store_true', default=False, help="Source of the trigger ('internal' or 'external')")
+    trigger_parser.add_argument('--external', action='store_true', default=False, help="Source of the trigger ('internal' or 'external')")
 
     @cmd2.with_category("Slow control commands")
     @cmd2.with_argparser(trigger_parser)
@@ -117,25 +127,32 @@ class LittleHardHatCLI(cmd2.Cmd):
         """Set frequency of the internal trigger."""
 
         if args.frequency is None and not args.external:
-            self.perror("Error: Specify a frequency or use -e for external source.")
+            self.perror("Error: Specify a frequency or use --external for external source.")
             return
 
         if args.frequency is not None and args.external:
-            self.perror(f"Error: Cannot specify both frequency and external source")
+            self.perror(f"Error: Cannot specify both frequency and external source.")
             return
         
         try:
             if args.external:
                 self.board.set_trigger_source('external')
+                self.prsuccess(f"Trigger source set to external.")
             else:
                 self.board.set_trigger_source('internal')
                 self.board.set_frequency(args.frequency)
-            self.prsuccess(f"Trigger source set to external." if args.external else f"Trigger set to {args.frequency} Hz")
-        
+                status_dac = self.board.fetch_status_dac()
+                trigger_value = status_dac[f"JS_Trigger_Frequency"]
+
+                if args.frequency == trigger_value:
+                    self.prsuccess(f"Trigger set to {args.frequency} Hz")
+                else:
+                    self.perror(f"Board Error: Trigger set to {trigger_value} Hz instead of {args.frequency} Hz.")
+
         except (TypeError, ValueError) as e:
             self.perror(f"{e}")
         except LittleHardHatError as e:
-            self.perror(f"[ch {ch}] Board error: {e}")
+            self.perror(f"Board error: {e}")
 
     # =====================================================
     # SWEEP: Set the range of the sweep.
@@ -156,21 +173,29 @@ class LittleHardHatCLI(cmd2.Cmd):
         try:
             self.board.set_sweep_min(args.min)
             self.board.set_sweep_max(args.max)
-            self.prsuccess(f"Range Sweep set to [{args.min},{args.max}]")
+
+            status_dac = self.board.fetch_status_dac()
+            min_sweep = status_dac[f"JS_SweepAdjmin"]
+            max_sweep = status_dac[f"JS_SweepAdjMAX"]
+            
+            if min_sweep != args.min or max_sweep != args.max:
+                self.perror(f"Board error: Range Sweep set to [{min_sweep},{max_sweep}] instead of [{args.min},{args.max}].")
+            else:
+                self.prsuccess(f"Range Sweep set to [{args.min},{args.max}].")
 
         except (TypeError, ValueError) as e:
             self.perror(f"{e}")
         except LittleHardHatError as e:
-            self.perror(f"[ch {ch}] Board error: {e}")
+            self.perror(f"Board error: {e}")
 
     # =====================================================
     # SWEEP: Turn off/on/loop the sweep for single channel.
     # =====================================================
     sweep_parser = cmd2.Cmd2ArgumentParser()
     sweep_parser.add_argument('mode', type=str, choices=['off','on', 'loop'], help="Mode for the sweep (on,off,loop).")
-    sweep_parser.add_argument('channel', type=int, help="Single channel to turn off (1-19).")
-    sweep_parser.add_argument('-n', '--nstep', type=int, default=None, help="Number of DAC steps across the sweep range.")
-    sweep_parser.add_argument('-t', '--time', type=int, default=None, help="Duration of each step in milliseconds.")
+    sweep_parser.add_argument('channel', type=int, help="Single channel to control sweep (1-19).")
+    sweep_parser.add_argument('--nstep', type=int, default=None, help="Number of DAC steps across the sweep range.")
+    sweep_parser.add_argument('--tstep', type=int, default=None, help="Duration of each step in milliseconds.")
 
     @cmd2.with_category("Slow control commands")
     @cmd2.with_argparser(sweep_parser)
@@ -181,16 +206,16 @@ class LittleHardHatCLI(cmd2.Cmd):
             kwargs = {}
             if args.nstep is not None:   
                 kwargs['NumberOfStep'] = args.nstep
-            if args.time is not None:   
-                kwargs['TimeForStep']  = args.time
+            if args.tstep is not None:   
+                kwargs['TimeForStep']  = args.tstep
 
             self.board.set_sweep(args.channel,args.mode,**kwargs)
-            self.prsuccess(f"Channel {args.channel} sweep set to '{args.mode}'" + (f" [nstep={args.nstep}, time={args.time}ms]" if args.nstep else "") + ".")
+            self.prsuccess(f"Channel {args.channel} sweep set to '{args.mode}'" + (f" [nstep={args.nstep}, time={args.tstep}ms]" if args.nstep else "") + ".")
 
         except (TypeError, ValueError) as e:
             self.perror(f"{e}")
         except LittleHardHatError as e:
-            self.perror(f"[ch {ch}] Board error: {e}")
+            self.perror(f"[ch {args.channel}] Board error: {e}")
 
     # =====================================================
     # TEMPERATURE: Set temperature of the heater.
@@ -205,12 +230,18 @@ class LittleHardHatCLI(cmd2.Cmd):
 
         try:
             self.board.set_temperature(args.temperature)
-            self.prsuccess(f"Temperature set to {args.temperature} °C.")
+            status_temp = self.board.fetch_status_temp()
+            temperature_value = status_temp["JS_TSetted"]
+
+            if temperature_value == args.temperature:
+                self.prsuccess(f"Temperature set to {args.temperature} °C.")
+            else:
+                self.perror(f"Board Error: Temperature set to {temperature_value} °C. instead of {args.temperature}.")
 
         except (TypeError, ValueError) as e:
             self.perror(f"{e}")
         except LittleHardHatError as e:
-            self.perror(f"[ch {ch}] Board error: {e}")
+            self.perror(f"Board error: {e}")
 
     # =====================================================
     # HEATER: Set power of the heater.
@@ -230,7 +261,7 @@ class LittleHardHatCLI(cmd2.Cmd):
         except (TypeError, ValueError) as e:
             self.perror(f"{e}")
         except LittleHardHatError as e:
-            self.perror(f"[ch {ch}] Board error: {e}")
+            self.perror(f"Board error: {e}")
 
     # =====================================================
     # RENDER METHODS.
@@ -366,9 +397,9 @@ class LittleHardHatCLI(cmd2.Cmd):
     # MONITORING
     # =====================================================
     monitor_parser = cmd2.Cmd2ArgumentParser()
-    monitor_parser.add_argument('-d', '--dac', action='store_true', help='Show DAC status')
-    monitor_parser.add_argument('-t', '--temp', action='store_true', help='Show temperature status')
-    monitor_parser.add_argument('-r', '--rate', type=float, default=1.0, help='Refresh rate in seconds')
+    monitor_parser.add_argument('--dac', action='store_true', help='Show DAC status')
+    monitor_parser.add_argument('--temp', action='store_true', help='Show temperature status')
+    monitor_parser.add_argument('--rate', type=float, default=1.0, help='Refresh rate in seconds')
 
     @cmd2.with_category("Monitoring commands")
     @cmd2.with_argparser(monitor_parser)

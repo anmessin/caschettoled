@@ -35,6 +35,8 @@ Solleva `TypeError` o `ValueError` se i parametri non sono validi.
 | `VALID_TEMPERATURE_RANGE`    | `(25.0, 80.0)`             | Range temperatura in °C.                |
 | `VALID_POWER_HEATER_RANGE`   | `(0, 4095)`                | Range potenza heater (12 bit).          |
 
+Queste costanti sono usate internamente per la validazione degli argomenti e per essere consultate dal chiamante.
+
 ## Metodi di controllo
 
 ### Imposta il valore DAC di un singolo canale.
@@ -118,7 +120,7 @@ lhh.set_sweep(channel=1, mode='loop', NumberOfStep=64, TimeForStep=100)
 | `"loop"` | Sweep continuo. Stessi vincoli di `"on"`.                                                          |
 ---
 
-### Imposta la temperatura target dell'heater
+### Imposta la temperatura target dell'heater.
 ```python
 set_temperature(temperature: float | int)
 
@@ -132,7 +134,7 @@ lhh.set_temperature(temperature=30.0)
 | `temperature`  | `float` | Valore targer di temperatura; deve rientrare in `VALID_TEMPERATURE_RANGE`. |
 ---
 
-### Imposta direttamente la potenza dell'heater
+### Imposta direttamente la potenza dell'heater.
 ```python
 set_heater_power(heaterpower: int)
 

@@ -19,7 +19,7 @@ class LittleHardHat:
  
     # -- Trigger -----------------------------------------------------------------------
     TRIGGER_SOURCE_TYPE   = ("internal", "external")
-    VALID_FREQUENCY_RANGE = (1000, 10000)                # Hz — onboard generator limits
+    VALID_FREQUENCY_RANGE = (1_000, 10_000)                # Hz — onboard generator limits
  
     # -- Channels ----------------------------------------------------------------------
     VALID_CHANNEL_RANGE = (1, 19)          
@@ -30,7 +30,7 @@ class LittleHardHat:
     # -- Sweep -------------------------------------------------------------------------
     SWEEP_MODE                 = ("off", "on", "loop")
     VALID_NUMBER_OF_STEP_RANGE = (1, 254)                # Steps across the sweep range
-    VALID_TIME_FOR_STEP_RANGE  = (10, 10000)             # ms per step
+    VALID_TIME_FOR_STEP_RANGE  = (10, 10_000)             # ms per step
  
     # -- Heater / temperature ----------------------------------------------------------
     VALID_TEMPERATURE_RANGE  = (25.0, 80.0)              # °C 
@@ -39,17 +39,17 @@ class LittleHardHat:
     # ==================================================================================
     # Constructor.
     # ==================================================================================
-    def __init__(self, localhost: str, timeout: int):
-        self._check_type(localhost, "localhost", str)
+    def __init__(self, host: str, timeout: int):
+        self._check_type(host, "host", str)
         self._check_type(timeout, "timeout", int)
         
-        if not localhost or localhost.isspace():
-            raise ValueError(f"Invalid value for 'localhost': expected non-empty str, got {localhost!r}.")
+        if not host or host.isspace():
+            raise ValueError(f"Invalid value for 'host': expected non-empty str, got {host!r}.")
         
         if timeout <= 0:
             raise ValueError(f"Invalid value for 'timeout': expected positive number, got {timeout!r}.")
         
-        self.url = f"http://{localhost}"
+        self.url = f"http://{host}"
         self.timeout = timeout
 
     # ==================================================================================
@@ -63,9 +63,9 @@ class LittleHardHat:
             raise TypeError(f"Invalid type for '{name}': expected {expected_type}, got {type(value)}")
 
     def _check_range(self, value, name: str, valid_range: list):
-        min, max = valid_range
-        if not (min <= value <= max):
-            raise ValueError(f"Invalid value for '{name}': must be in [{min}:{max}], got {value!r}.")
+        lo, hi = valid_range
+        if not (lo <= value <= hi):
+            raise ValueError(f"Invalid value for '{name}': must be in [{lo}:{hi}], got {value!r}.")
 
     # ==================================================================================
     # Low-level HTTP helpers private methods.

@@ -40,10 +40,11 @@ def main():
 
     env_key = f"LHHBOARD{args.board}_IP"
     host = os.getenv(env_key)
-    board = LittleHardHat(host, args.timeout)
-
+    
     if not host:
         raise ValueError(f"Board {args.board} not found.")
+
+    board = LittleHardHat(host, args.timeout)
 
     sys.argv = [sys.argv[0]]
 

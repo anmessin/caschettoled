@@ -6,6 +6,8 @@ Il progetto è organizzato in due parti principali:
 - **`littlehardhat`**: SDK Python per comunicare con la board via HTTP.
 - **`apps/cli`**: interfaccia a riga di comando interattiva costruita sopra l'SDK.
 
+> Nel repository sono presenti anche `apps/daq` (acquisizione dati) e `apps/analysis` (analisi/plot), non trattate in questa documentazione.
+
 ## Struttura del progetto
 
 ```
@@ -66,10 +68,10 @@ python apps/cli/main.py --board 1
 ```
 
 ```
-LHH> on 1 -v 2048
+LHH> on 1 --value 2048
 LHH> status_dac
 LHH> temperature 45.0
-LHH> monitor -d -t -r 0.5
+LHH> monitor --dac --temp --rate 0.5
 ```
 
 Per l'elenco completo dei comandi vedi [`docs/cli.md`](docs/cli.md).
